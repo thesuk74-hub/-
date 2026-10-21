@@ -1,0 +1,5 @@
+web_data/
+output/
+__pycache__/
+*.pyc
+*.zip
