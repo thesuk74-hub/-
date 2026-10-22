@@ -66,10 +66,35 @@ def cmd_composite(a):
 
 
 def cmd_web(a):
+    import socket
+    import threading
+    import time
+    import webbrowser
+
     import uvicorn
+
     from .web.app import app
-    print(f"공사기간 적정성 검토 웹 — http://{'localhost' if a.host in ('0.0.0.0', '127.0.0.1') else a.host}:{a.port}")
-    uvicorn.run(app, host=a.host, port=a.port, log_level="warning")
+    host = "127.0.0.1" if a.host in ("localhost",) else a.host
+    url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '127.0.0.1') else host}:{a.port}"
+    with socket.socket() as s:
+        if s.connect_ex(("127.0.0.1", a.port)) == 0:
+            print(f"[안내] {a.port}번 포트가 이미 사용 중입니다. 이미 실행 중이면 브라우저에서 {url} 로 접속하거나, --port 8001 처럼 다른 포트로 실행하십시오.")
+            if a.open:
+                webbrowser.open(url)
+            return
+
+    def opener():
+        for _ in range(120):                     # 서버가 준비될 때까지 최대 60초 대기
+            with socket.socket() as s:
+                if s.connect_ex(("127.0.0.1", a.port)) == 0:
+                    webbrowser.open(url)
+                    return
+            time.sleep(0.5)
+
+    if a.open:
+        threading.Thread(target=opener, daemon=True).start()
+    print(f"공사기간 적정성 검토 웹 실행 중: {url}  (종료: Ctrl+C)", flush=True)
+    uvicorn.run(app, host=host, port=a.port, log_level="warning")
 
 
 def cmd_template(a):
@@ -142,6 +167,7 @@ def main(argv=None):
     wv = sp.add_parser("web")
     wv.add_argument("--host", default="127.0.0.1")
     wv.add_argument("--port", type=int, default=8000)
+    wv.add_argument("--open", action="store_true", help="서버 준비 후 브라우저 자동 실행")
     wv.set_defaults(f=cmd_web)
     t = sp.add_parser("template")
     t.add_argument("path")

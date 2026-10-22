@@ -33,7 +33,7 @@
 
 ```bash
 # Windows: run_web.bat 더블클릭   /  macOS·Linux: ./run_web.sh
-python3 -m cpa web --port 8000          # → http://localhost:8000
+python3 -m cpa web --open               # → http://127.0.0.1:8000 (서버 준비 후 브라우저 자동 실행)
 # 사내 서버(여러 사용자): docker build -t cpa-web . && docker run -p 8000:8000 -v cpa-data:/data cpa-web
 ```
 - PDF 변환에는 LibreOffice가 필요합니다(없으면 DOCX로 제공). Docker 이미지는 LibreOffice·나눔글꼴을 포함합니다.
