@@ -22,7 +22,9 @@ def soffice():
     return None
 
 
-REPORT_FILES = ["01_공사기간산정보고서.docx", "02_보고서부록.docx", "03_주공정공정표.xlsx", "04_검토과정_워크북.xlsx"]
+REPORT_FILES = ["01_공사기간산정보고서.hwpx", "02_보고서부록.xlsx", "03_주공정공정표.xlsx", "04_검토과정_워크북.xlsx"]
+# PDF 변환·미리보기용 DOCX(같은 내용, 숨김 파일) → 01_공사기간산정보고서.pdf / 02_보고서부록.pdf
+PDF_SOURCES = {"_01_공사기간산정보고서.docx": "01_공사기간산정보고서.pdf", "_02_보고서부록.docx": "02_보고서부록.pdf"}
 
 
 def calc(path, log=None):
@@ -86,7 +88,7 @@ def chart(res, out):
 def reports(res, out):
     import openpyxl
 
-    from . import appendix, gantt, report, workbook
+    from . import gantt, workbook
     log = res.log
     os.makedirs(out, exist_ok=True)
     png = os.path.join(out, "03_주공정공정표.png")
@@ -97,10 +99,7 @@ def reports(res, out):
     gantt.write_sheet(wb.active, res.final, res.p)
     wb.save(os.path.join(out, "03_주공정공정표.xlsx"))
     log("  03_주공정공정표 (xlsx·pdf·png) 작성", "보고서")
-    report.build(res, os.path.join(out, "01_공사기간산정보고서.docx"), png, os.path.join(out, "_주공정모식도.png"))
-    log("  01_공사기간산정보고서.docx 작성", "보고서")
-    appendix.build(res, os.path.join(out, "02_보고서부록.docx"))
-    log("  02_보고서부록.docx 작성", "보고서")
+    _documents(res, out, log)
     workbook.write(res, os.path.join(out, "04_검토과정_워크북.xlsx"))
     log("  04_검토과정_워크북.xlsx 작성", "보고서")
     for s_ in getattr(res, "subs", []) or []:
@@ -109,9 +108,7 @@ def reports(res, out):
         r = s_["res"]
         log(f"  [공사별] {s_['name']} 보고서 작성", "보고서")
         chart(r, so)
-        report.build(r, os.path.join(so, "01_공사기간산정보고서.docx"), os.path.join(so, "03_주공정공정표.png"),
-                     os.path.join(so, "_주공정모식도.png"))
-        appendix.build(r, os.path.join(so, "02_보고서부록.docx"))
+        _documents(r, so, None)
         workbook.write(r, os.path.join(so, "04_검토과정_워크북.xlsx"))
     s = summary(res)
     with open(os.path.join(out, "result.json"), "w", encoding="utf-8") as f:
@@ -122,15 +119,29 @@ def reports(res, out):
     return s
 
 
+def _documents(res, out, log):
+    """보고서(HWPX + PDF용 DOCX), 부록(XLSX + PDF용 DOCX)."""
+    from . import appendix, report
+    from .hwpxbuild import HwpxDoc
+    from .xlsxbuild import XlsxDoc
+    png, net = os.path.join(out, "03_주공정공정표.png"), os.path.join(out, "_주공정모식도.png")
+    report.build(res, os.path.join(out, "01_공사기간산정보고서.hwpx"), png, net, doc_cls=HwpxDoc)
+    log and log("  01_공사기간산정보고서.hwpx 작성(한글)", "보고서")
+    report.build(res, os.path.join(out, "_01_공사기간산정보고서.docx"), png, net)
+    appendix.build(res, os.path.join(out, "02_보고서부록.xlsx"), doc_cls=XlsxDoc)
+    log and log("  02_보고서부록.xlsx 작성(엑셀, 부록별 시트)", "보고서")
+    appendix.build(res, os.path.join(out, "_02_보고서부록.docx"))
+
+
 def export_pdf(out, log=None):
     """보고서·부록 DOCX → PDF (LibreOffice) 및 전체 ZIP."""
     exe = soffice()
     made = []
-    targets = [os.path.join(out, f) for f in ("01_공사기간산정보고서.docx", "02_보고서부록.docx")]
+    targets = [os.path.join(out, f) for f in PDF_SOURCES]
     sub = os.path.join(out, "공사별")
     if os.path.isdir(sub):
         for d in sorted(os.listdir(sub)):
-            targets += [os.path.join(sub, d, f) for f in ("01_공사기간산정보고서.docx", "02_보고서부록.docx")]
+            targets += [os.path.join(sub, d, f) for f in PDF_SOURCES]
     for src in targets:
         out_d = os.path.dirname(src)
         if not os.path.exists(src):
@@ -140,10 +151,13 @@ def export_pdf(out, log=None):
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600)
             pdf = src[:-5] + ".pdf"
             if os.path.exists(pdf):
+                final = os.path.join(out_d, PDF_SOURCES[os.path.basename(src)])
+                os.replace(pdf, final)
+                pdf = final
                 made.append(os.path.relpath(pdf, out))
                 log and log(f"  PDF 변환: {os.path.relpath(pdf, out)}", "출력")
         else:
-            log and log("  LibreOffice가 없어 PDF 변환 생략(DOCX 사용)", "출력")
+            log and log("  LibreOffice가 없어 PDF 변환 생략(HWPX·XLSX 사용)", "출력")
     zpath = os.path.join(out, "성과품_전체.zip")
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for dp, _, fs in os.walk(out):

@@ -17,6 +17,9 @@ python3 -m cpa run examples/예제_대죽공공폐수_입력.xlsx -o output/예�
 cp templates/입력서식_템플릿.xlsx output/<사업명>/입력_<사업명>.xlsx   # 작성 후
 python3 -m cpa run output/<사업명>/입력_<사업명>.xlsx -o output/<사업명>
 
+# 공정별 수량파일만 있는 경우(수량첨부 검토)
+python3 -m cpa qty --work 처리시설공사 토공.xlsx 구조물공.xlsx --work 관공사 관로공.xlsx --start 2027-03-01 --end 2028-10-31 --cost 9800 --loc "충청남도 서산시" -o output/<사업명>
+
 # 보조 명령
 python3 -m cpa stations 충청남도     # 기상관측지점
 python3 -m cpa db 콘크리트 타설      # 부록4 1일작업량 DB

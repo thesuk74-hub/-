@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공사기간 적정성 검토</title>
+<style>
+:root{--navy:#1f4e78;--blue:#2f6eb5;--bg:#f4f6f9;--card:#fff;--line:#dde3ea;--txt:#1d2733;--sub:#5d6b7a;--ok:#2e7d32;--warn:#c62828;--amber:#b26a00;--red:#e53935;--green:#8bc34a}
+*{box-sizing:border-box}body{margin:0;font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+header{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:19px;margin:0}header .sub{font-size:12px;opacity:.85}
+.wrap{display:grid;grid-template-columns:270px 1fr;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 12px;color:var(--navy)}.card h3{font-size:14px;margin:18px 0 8px;color:var(--navy)}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.step{flex:1;min-width:140px;background:#fff;border:2px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.step .n{width:28px;height:28px;border-radius:50%;background:#e8edf3;color:var(--sub);display:flex;align-items:center;justify-content:center;font-weight:700}
+.step.active{border-color:var(--blue)}.step.active .n{background:var(--blue);color:#fff}
+.step.done .n{background:var(--ok);color:#fff}.step .t{font-weight:700}.step .s{font-size:11px;color:var(--sub)}
+button,.btn{background:var(--blue);color:#fff;border:0;border-radius:7px;padding:9px 16px;font-size:14px;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+button:hover,.btn:hover{filter:brightness(1.08)}button:disabled{background:#9aa9b9;cursor:not-allowed}
+.btn.big,button.big{padding:12px 26px;font-size:15px;font-weight:700}
+.btn.ghost,button.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+button.danger{background:#fff;color:var(--warn);border:1px solid #e9b5b5;padding:4px 8px;font-size:12px}
+.drop{border:2px dashed #a9bacb;border-radius:10px;padding:26px;text-align:center;color:var(--sub);background:#fafcfe;cursor:pointer}
+.drop.over{border-color:var(--blue);background:#eef4fb}
+.jobs .job{padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;background:#fff}
+.jobs .job.sel{border-color:var(--blue);background:#eef4fb}.jobs .job .nm{font-weight:700;font-size:13px}.jobs .job .mt{font-size:11px;color:var(--sub)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px 16px}
+label{display:block;font-size:12px;color:var(--sub);margin-bottom:3px}
+input,select{width:100%;padding:7px 8px;border:1px solid #c5d0db;border-radius:6px;font-size:13px;font-family:inherit;background:#fffef5}
+.log{background:#0f1720;color:#d6e2ee;font-family:Consolas,monospace;font-size:12px;border-radius:8px;padding:10px;height:280px;overflow:auto;white-space:pre-wrap}
+.log .w{color:#ffb3b3}.log .d{color:#9be29b;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.kpi{background:#f7f9fc;border:1px solid var(--line);border-radius:9px;padding:12px}
+.kpi .l{font-size:12px;color:var(--sub)}.kpi .v{font-size:22px;font-weight:700;color:var(--navy);margin-top:3px}.kpi .u{font-size:12px;color:var(--sub)}
+.kpi.main{background:var(--navy);border-color:var(--navy)}.kpi.main .l,.kpi.main .u{color:#cfe0f1}.kpi.main .v{color:#fff;font-size:26px}
+.bar{display:flex;height:26px;border-radius:6px;overflow:hidden;margin:10px 0 4px}.bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;white-space:nowrap;overflow:hidden}
+.legend{font-size:12px;color:var(--sub);display:flex;gap:14px;flex-wrap:wrap}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}th,td{border:1px solid var(--line);padding:5px 7px;text-align:center}th{background:#e9eff6;color:#24405c}
+td.l{text-align:left}tr.cp td{background:#fff3f3}.scroll{max-height:420px;overflow:auto}
+.badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700}
+.b-ok{background:#e3f3e5;color:var(--ok)}.b-ng{background:#fde6e6;color:var(--warn)}.b-ref{background:#eef1f5;color:var(--sub)}.b-amb{background:#fff1d6;color:var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.chip{background:#fff3f3;border:1px solid #f0b4b4;color:#a52020;border-radius:14px;padding:3px 10px;font-size:12px}
+.arrow{color:var(--red);font-weight:700}
+.files .f{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;gap:8px}
+.files .f .nm{font-weight:600}.muted{color:var(--sub);font-size:12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hidden{display:none}.verdict{font-size:18px;font-weight:700;padding:10px 14px;border-radius:8px;margin:6px 0 10px}
+.v-ok{background:#e3f3e5;color:var(--ok)}.v-ng{background:#fde6e6;color:var(--warn)}.v-amb{background:#fff1d6;color:var(--amber)}
+details summary{cursor:pointer;color:var(--navy);font-weight:700;margin:12px 0 6px}
+iframe{width:100%;height:720px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}@media(max-width:700px){.choice{grid-template-columns:1fr}}
+.opt{border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;background:#fff}.opt.on{border-color:var(--blue);background:#eef4fb}
+.opt .tt{font-weight:700;font-size:15px;color:var(--navy)}.opt .dd{font-size:12px;color:var(--sub);margin-top:4px}
+.comp td input[type=text],.comp td input[type=date]{background:#fff}.comp td{vertical-align:middle}.tag{display:inline-block;background:#e9eff6;color:#24405c;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
+.ok{color:var(--ok)}.ng{color:var(--warn)}
+.toast{position:fixed;right:20px;bottom:20px;background:#223;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:.3s;z-index:9}
+.toast.on{opacity:.95}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏗️ 공사기간 적정성 검토</h1>
+  <a href="/" style="color:#cfe0f1;font-size:12px;order:9;margin-left:auto">‹ 공정 선택·수량파일 첨부 방식(기본 화면)</a><div class="sub" id="gl">적정 공사기간 확보를 위한 가이드라인(2026, 국토교통부) 기준 — 비작업일수 · 작업일수 · 주공정(CPM) · 공기조정 · 적정성(±20%)</div>
+</header>
+<div class="wrap">
+  <aside>
+    <div class="card">
+      <h2>검토 작업 목록</h2>
+      <div class="jobs" id="jobs"><div class="muted">작업이 없습니다. [① 파일 추가]에서 엑셀을 올리세요.</div></div>
+    </div>
+    <div class="card">
+      <h2>입력서식</h2>
+      <a class="btn ghost" href="/api/template/blank" style="width:100%;text-align:center;margin-bottom:8px">빈 입력서식 내려받기</a>
+      <a class="btn ghost" href="/api/template/example" style="width:100%;text-align:center">예제 입력(대죽 샘플)</a>
+      <p class="muted">입력서식: 1_공사개요 · 2_비작업조건 · 3_수량 · 4_공정 · 5_유사사례. 기존 검토엑셀(①~⑦ 시트)도 업로드하면 자동 변환됩니다.</p>
+    </div>
+  </aside>
+  <main>
+    <div class="steps" id="steps"></div>
+
+    <!-- ① 파일 추가 -->
+    <section class="card panel" id="p1">
+      <h2>① 파일 추가</h2>
+      <p style="margin:0 0 8px"><b>검토 대상 공사 구분을 먼저 선택하십시오.</b></p>
+      <div class="choice">
+        <div class="opt on" id="optSingle" onclick="setType('단일공사')"><div class="tt">🏗️ 단일공사</div><div class="dd">하나의 공사 — 입력서식 1개(수량·공정)를 첨부합니다. 기존 검토엑셀(①~⑦)도 이곳에 올리면 자동 인식됩니다.</div></div>
+        <div class="opt" id="optComp" onclick="setType('복합공사')"><div class="tt">🏗️🏗️ 복합공사 (여러 공사)</div><div class="dd">여러 공사를 함께 시행 — 공사별로 입력서식(각 공사의 수량·공정)과 착공일을 첨부하여 통합 공정과 공사별 적정성을 검토합니다.</div></div>
+      </div>
+      <div id="singleBox">
+      <div class="drop" id="drop">
+        <div style="font-size:30px">📂</div>
+        <div><b>엑셀 파일을 끌어다 놓거나 클릭하여 선택</b></div>
+        <div class="muted">프로그램 입력서식(.xlsx) 또는 기존 검토엑셀(①공사개요~⑦적정성검토)</div>
+        <input type="file" id="file" accept=".xlsx,.xlsm" class="hidden">
+      </div>
+      <div class="row" style="margin-top:12px"><span id="upmsg" class="muted"></span></div>
+      </div>
+      <div id="compBox" class="hidden">
+        <div class="grid" style="grid-template-columns:1fr"><div><label>복합공사명</label><input id="compName" placeholder="예: ○○ 하수처리시설 증설 외 2개 사업"></div></div>
+        <h3>공사별 첨부 (각 공사의 입력서식: 1_공사개요·2_비작업조건·3_수량·4_공정·5_유사사례)</h3>
+        <table class="comp"><thead><tr><th style="width:36px">코드</th><th>공사명</th><th>입력서식 파일 (수량·공정)</th><th style="width:150px">착공일<br><span class="muted">(빈칸=파일값)</span></th><th style="width:90px">준비기간<br>별도 계상</th><th style="width:150px">확인</th><th style="width:50px"></th></tr></thead><tbody id="compRows"></tbody></table>
+        <div class="row" style="margin-top:10px"><button class="ghost" onclick="addRow()">+ 공사 추가</button>
+          <button class="big" id="btnComp" onclick="createComp()">복합공사 구성</button>
+          <span class="muted">준비기간은 최초 착공 공사에 1회 계상(별도 계상 선택 시 해당 공사 착공 후 준비기간 경과 뒤 착수), 정리기간은 최종 준공 시 1회</span></div>
+      </div>
+    </section>
+
+    <!-- ② 검토 실행 -->
+    <section class="card panel hidden" id="p2">
+      <h2>② 조건 확인 및 검토 실행</h2>
+      <div class="row muted" id="jobinfo"></div>
+      <div class="row" id="selwrap" style="margin:10px 0"></div>
+      <div id="compPanel" class="hidden">
+        <h3>복합공사 구성 <span class="muted" id="compNote"></span></h3>
+        <table class="comp"><thead><tr><th>코드</th><th>공사명</th><th>입력서식 파일</th><th>착공일(적용)</th><th>준비 별도</th><th>공정/수량</th><th>공사비(백만원)</th><th>시설유형</th><th>관리</th></tr></thead><tbody id="compTable"></tbody></table>
+        <div class="row hidden" id="compAdd" style="margin-top:8px"><input id="addName" placeholder="추가할 공사명" style="width:200px"><input type="date" id="addStart" style="width:150px"><label style="margin:0"><input type="checkbox" id="addPrep" style="width:auto"> 준비 별도</label><input type="file" id="addFile" accept=".xlsx" style="width:260px;background:#fff"><button class="ghost" onclick="addSub()">+ 공사 추가</button></div>
+        <div id="compWarn"></div>
+      </div>
+      <h3 id="formTitle">주요 검토조건 (입력서식 1_공사개요 — 수정 후 [조건 저장])</h3>
+      <div class="grid" id="form"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="ghost" id="btnSave">조건 저장</button>
+        <button class="big" id="btnRun">▶ 검토 실행</button>
+        <span class="muted">비작업일수 → 1일작업량 매칭 → 작업일수 → 주공정(CPM) → 공기조정 → 공사기간 종합 → 적정성 검토 → 동절기 추가검토</span>
+      </div>
+      <h3>작업경과</h3>
+      <div class="log" id="log1"></div>
+    </section>
+
+    <!-- ③ 결과 확인 -->
+    <section class="card panel hidden" id="p3">
+      <h2>③ 결과 확인</h2>
+      <div id="result"><div class="muted">검토 결과가 없습니다. [② 검토 실행]을 먼저 하십시오.</div></div>
+    </section>
+
+    <!-- ④ 보고서 작성 -->
+    <section class="card panel hidden" id="p4">
+      <h2>④ 보고서 작성</h2>
+      <p>검토 결과로 <b>공사기간 산정 보고서</b>(제1장 사업개요 · 제2장 공사기간 산정·적정성 검토·결정 · 제3장 예정공정표), <b>보고서 부록</b>(부록1~11),
+        <b>주공정 공정표</b>(Excel), <b>검토과정 워크북</b>(①~⑦ 작업경과)을 작성합니다.</p>
+      <button class="big" id="btnReport">📝 보고서 작성</button>
+      <h3>작업경과</h3>
+      <div class="log" id="log2" style="height:200px"></div>
+      <div class="files" id="files4" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ⑤ 보고서 출력 -->
+    <section class="card panel hidden" id="p5">
+      <h2>⑤ 보고서 출력</h2>
+      <div class="row"><button class="big" id="btnExport">🖨️ PDF 변환 · 출력</button>
+        <a class="btn ghost" id="zip" href="#">⬇ 성과품 전체 ZIP</a><span class="muted" id="soff"></span></div>
+      <div class="log hidden" id="log3" style="height:120px;margin-top:10px"></div>
+      <h3>성과품</h3>
+      <div class="files" id="files5"></div>
+      <h3>미리보기</h3>
+      <div class="row" id="pv"></div>
+      <iframe id="viewer" class="hidden"></iframe>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const S={job:null,info:null,step:1,logN:0,poll:null,type:"단일공사",rows:[]};
+const CODES="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const enc=f=>f.split("/").map(encodeURIComponent).join("/");
+function setType(t){S.type=t;$("optSingle").classList.toggle("on",t=="단일공사");$("optComp").classList.toggle("on",t=="복합공사");
+  $("singleBox").classList.toggle("hidden",t!="단일공사");$("compBox").classList.toggle("hidden",t!="복합공사");if(t=="복합공사"&&!S.rows.length){addRow();addRow()}}
+function addRow(){S.rows.push({name:"",file:null,start:"",prep:false,info:null});drawRows()}
+function delRow(i){S.rows.splice(i,1);drawRows()}
+function drawRows(){$("compRows").innerHTML=S.rows.map((r,i)=>`<tr><td><span class="tag">${CODES[i]}</span></td>
+  <td><input type="text" value="${esc(r.name)}" placeholder="공사명" onchange="S.rows[${i}].name=this.value"></td>
+  <td class="l"><input type="file" accept=".xlsx,.xlsm" style="background:#fff" onchange="pickFile(${i},this.files[0])">${r.file?`<div class="muted">${esc(r.file.name)}</div>`:""}</td>
+  <td><input type="date" value="${esc(r.start)}" onchange="S.rows[${i}].start=this.value"></td>
+  <td><input type="checkbox" style="width:auto" ${r.prep?"checked":""} onchange="S.rows[${i}].prep=this.checked"></td>
+  <td class="l" style="font-size:12px">${r.info?(r.info.kind=="입력서식"?`<span class="ok">✔ 입력서식</span><br>공정 ${r.info.공정수} · 수량 ${r.info.수량수}<br>착공 ${esc(r.info.착공예정일||"-")}`:`<span class="ng">✖ ${esc(r.info.kind)}</span>`):'<span class="muted">파일 선택</span>'}</td>
+  <td>${S.rows.length>2?`<button class="danger" onclick="delRow(${i})">삭제</button>`:""}</td></tr>`).join("")}
+async function pickFile(i,f){if(!f)return;const r=S.rows[i];r.file=f;const fd=new FormData();fd.append("file",f);
+  try{r.info=await api("/api/inspect",{method:"POST",body:fd});if(!r.name&&r.info.공사명)r.name=r.info.공사명;if(r.info.kind=="검토엑셀")toast("검토엑셀은 [단일공사] 영역에 올리면 복합공사로 자동 인식됩니다")}catch(e){toast(e.message)}drawRows()}
+async function createComp(){const rows=S.rows;if(rows.length<2)return toast("2개 이상의 공사가 필요합니다");
+  for(const [i,r] of rows.entries()){if(!r.file)return toast(`${CODES[i]} 공사의 입력서식 파일을 첨부하세요`);if(r.info&&r.info.kind!="입력서식")return toast(`${CODES[i]} 공사 파일이 입력서식이 아닙니다`);if(!r.name.trim())return toast(`${CODES[i]} 공사명을 입력하세요`)}
+  const fd=new FormData();fd.append("name",$("compName").value||"복합공사");rows.forEach(r=>{fd.append("names",r.name);fd.append("starts",r.start||"");fd.append("preps",r.prep?"Y":"N");fd.append("files",r.file)});
+  $("btnComp").disabled=true;try{const r=await api("/api/jobs/composite",{method:"POST",body:fd});S.rows=[];drawRows();await loadJobs();pick(r.id,2);toast("복합공사 구성 완료"+(r.warnings.length?` (확인사항 ${r.warnings.length}건)`:""))}catch(e){toast(e.message)}$("btnComp").disabled=false}
+async function updSub(i){const b={name:$("sn"+i).value,start:$("ss"+i).value,own_prep:$("sp"+i).checked};try{await api(`/api/jobs/${S.job}/subs/${i}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});toast("공사 정보 변경 — 통합 입력 재구성");loadJob()}catch(e){toast(e.message)}}
+async function repSub(i,f){if(!f)return;const fd=new FormData();fd.append("file",f);try{await api(`/api/jobs/${S.job}/subs/${i}/file`,{method:"POST",body:fd});toast("첨부 교체 — 통합 입력 재구성");loadJob()}catch(e){toast(e.message)}}
+async function delSub(i){if(!confirm("이 공사를 복합공사에서 삭제할까요?"))return;try{await api(`/api/jobs/${S.job}/subs/${i}`,{method:"DELETE"});loadJob()}catch(e){toast(e.message)}}
+async function addSub(){const f=$("addFile").files[0];if(!f||!$("addName").value)return toast("공사명과 파일을 입력하세요");const fd=new FormData();fd.append("name",$("addName").value);fd.append("start",$("addStart").value);fd.append("own_prep",$("addPrep").checked?"Y":"N");fd.append("file",f);
+  try{await api(`/api/jobs/${S.job}/subs`,{method:"POST",body:fd});$("addName").value="";$("addFile").value="";toast("공사 추가 — 통합 입력 재구성");loadJob()}catch(e){toast(e.message)}}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const fmt=n=>n==null?"-":Number(n).toLocaleString("ko-KR");
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2600)}
+async function api(u,o={}){const r=await fetch(u,o);if(!r.ok){let m=r.statusText;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}return r.json()}
+function selHTML(j){if(j.type!="복합공사")return "";return `<label style="margin:0">검토 대상</label><select style="width:auto" onchange="selInput(this.value)">${j.inputs.map((x,i)=>`<option value="${esc(x)}" ${x==j.current?"selected":""}>${i==0?"▣ 복합공사 통합 검토 (전체)":"개별 공사만: "+esc(j.subs[i-1].name)}</option>`).join("")}</select>`}
+const STEPS=[["파일 추가","엑셀 업로드"],["검토 실행","조건 확인·산정"],["결과 확인","공사기간·적정성"],["보고서 작성","보고서·부록·공정표"],["보고서 출력","PDF·ZIP 내려받기"]];
+function drawSteps(j){const done=[!!j,!!(j&&(j.has_result||j.summary)),!!(j&&(j.has_result||j.summary)),!!(j&&j.files&&j.files.includes("01_공사기간산정보고서.hwpx")),!!(j&&j.files&&j.files.includes("01_공사기간산정보고서.pdf"))];
+  $("steps").innerHTML=STEPS.map((s,i)=>`<div class="step ${S.step==i+1?"active":""} ${done[i]?"done":""}" onclick="go(${i+1})"><div class="n">${done[i]&&S.step!=i+1?"✓":i+1}</div><div><div class="t">${s[0]}</div><div class="s">${s[1]}</div></div></div>`).join("")}
+function go(n){if(n>1&&!S.job){toast("먼저 파일을 추가하거나 작업을 선택하세요");n=1}S.step=n;document.querySelectorAll(".panel").forEach((p,i)=>p.classList.toggle("hidden",i!=n-1));drawSteps(S.jobData);
+  if(n==3)loadResult();if(n==4||n==5)loadFiles()}
+async function loadJobs(){const js=await api("/api/jobs");$("jobs").innerHTML=js.length?js.map(j=>`<div class="job ${S.job==j.id?"sel":""}" onclick="pick('${j.id}')">
+  <div class="row" style="justify-content:space-between"><div class="nm">${esc(j.name)}</div><button class="danger" onclick="event.stopPropagation();delJob('${j.id}')">삭제</button></div>
+  <div class="mt"><span class="tag">${esc(j.type)}${j.n_subs?" "+j.n_subs+"개":""}</span> ${esc(j.created)} · ${esc(j.kind)}${j.summary?` · <b>${fmt(j.summary.공사기간_일)}일</b>(${j.summary.공사기간_개월}개월) · ${esc(j.summary.적정성)}`:""}${j.busy?` · ⏳${esc(j.busy)}`:""}</div></div>`).join(""):'<div class="muted">작업이 없습니다.</div>'}
+async function delJob(id){if(!confirm("이 작업과 결과 파일을 삭제할까요?"))return;await api("/api/jobs/"+id,{method:"DELETE"});if(S.job==id){S.job=null;S.jobData=null;go(1)}loadJobs()}
+async function pick(id,step){S.job=id;S.logN=0;["log1","log2","log3"].forEach(x=>$(x).innerHTML="");await loadJob();loadJobs();go(step||2);const j=S.jobData;if(j.busy)startPoll()}
+async function loadJob(){const j=await api("/api/jobs/"+S.job);S.jobData=j;
+  $("jobinfo").innerHTML=`<span class="tag">${esc(j.type)}</span>&nbsp; 작업 <b>${esc(j.name)}</b> · ${esc(j.kind)} · 검토대상 공정 ${j.n_acts}개 · 수량 ${j.n_items}항목`;
+  const comp=j.type=="복합공사";$("compPanel").classList.toggle("hidden",!comp);
+  if(comp)$("selwrap").innerHTML=selHTML(j);
+  if(comp){const editable=j.kind!="검토엑셀 변환";$("compAdd").classList.toggle("hidden",!editable);
+    $("compNote").textContent=j.composite_run?"— 통합 검토(공사별 독립 검토 포함)":"— 현재 개별 공사만 검토 중(위 선택에서 통합 입력 선택 시 복합공사 검토)";
+    $("compTable").innerHTML=j.subs_info.map(s=>`<tr><td><span class="tag">${CODES[s.idx]}</span></td>
+      <td>${editable?`<input type="text" id="sn${s.idx}" value="${esc(s.name)}">`:esc(s.name)}</td>
+      <td class="l">${esc(s.파일)} <a href="/api/jobs/${S.job}/file/${enc(s.file)}" title="내려받기">⬇</a>${editable?`<br><label style="display:inline;color:var(--blue);cursor:pointer">파일 교체<input type="file" accept=".xlsx" class="hidden" onchange="repSub(${s.idx},this.files[0])"></label>`:""}</td>
+      <td>${editable?`<input type="date" id="ss${s.idx}" value="${esc(s.start||"")}" title="빈칸=파일 착공일 ${esc(s.파일_착공||"")}"><div class="muted">적용 ${esc(s.적용_착공||"-")}</div>`:esc(s.파일_착공||"-")}</td>
+      <td>${editable?`<input type="checkbox" style="width:auto" id="sp${s.idx}" ${s.own_prep?"checked":""}>`:(s.own_prep?"Y":"-")}</td>
+      <td>${s.공정수} / ${s.수량수}</td><td>${fmt(s.총공사비)}</td><td>${esc(s.시설유형||"-")}</td>
+      <td>${editable?`<button class="ghost" style="padding:4px 8px;font-size:12px" onclick="updSub(${s.idx})">적용</button> <button class="danger" onclick="delSub(${s.idx})">삭제</button>`:""}</td></tr>`).join("");
+    $("compWarn").innerHTML=(j.combine_warnings||[]).length?`<ul>${j.combine_warnings.map(w=>`<li class="ng" style="font-size:12px">${esc(w)}</li>`).join("")}</ul>`:"";
+    $("formTitle").textContent=j.composite_run&&j.kind!="검토엑셀 변환"?"공통 검토조건 (관측지점·동절기·보정계수·목표기간 등은 모든 공사에 적용 / 공사비·시설유형·착공일·준비·정리는 공사별 파일값 유지)":"주요 검토조건 (입력서식 1_공사개요 — 수정 후 [조건 저장])"}
+  $("selwrap").innerHTML=j.inputs.length>1&&j.type!="복합공사"?`<label style="margin:0">검토 대상 입력</label><select id="sel" style="width:auto" onchange="selInput(this.value)">${j.inputs.map(x=>`<option ${x==j.current?"selected":""}>${esc(x)}</option>`).join("")}</select><span class="muted">검토엑셀에서 사업별·통합 입력이 생성되었습니다.</span>`:"";
+  if(j.type=="복합공사")$("selwrap").innerHTML=selHTML(j);
+  const I=S.info;$("form").innerHTML=I.editable.map(k=>{const v=j.overview[k]??"";const o=k=="기상관측지점"?I.stations:I.options[k];
+    const lock=j.composite_run&&j.kind!="검토엑셀 변환"&&S.info.per_project.includes(k)&&k!="공사명";
+    if(lock)return `<div><label>${esc(k)}</label><input value="공사별 파일값" disabled style="background:#eee"></div>`;
+    const inp=o?`<select data-k="${esc(k)}"><option value=""></option>${o.map(x=>`<option ${String(x)==String(v)?"selected":""}>${esc(x)}</option>`).join("")}</select>`:
+      `<input data-k="${esc(k)}" value="${esc(v)}" ${k=="착공예정일"?'type="date"':""}>`;return `<div><label title="${esc(I.desc[k])}">${esc(k)}</label>${inp}</div>`}).join("");drawSteps(j)}
+async function selInput(v){await api(`/api/jobs/${S.job}/select`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current:v})});await loadJob();toast("검토 대상을 변경했습니다")}
+async function saveSettings(){const b={};document.querySelectorAll("#form [data-k]").forEach(e=>b[e.dataset.k]=e.value);const r=await api(`/api/jobs/${S.job}/settings`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});toast(r.changed.length?`저장: ${r.changed.join(", ")}`:"변경사항 없음");await loadJob()}
+function busyUI(b){["btnRun","btnSave","btnReport","btnExport"].forEach(x=>$(x).disabled=!!b)}
+async function act(kind){busyUI(true);try{if(kind=="run")await saveSettings();await api(`/api/jobs/${S.job}/${kind}`,{method:"POST"});S.logN=0;["log1","log2","log3"].forEach(x=>$(x).innerHTML="");if(kind=="export")$("log3").classList.remove("hidden");startPoll()}catch(e){busyUI(false);toast(e.message)}}
+function startPoll(){busyUI(true);clearInterval(S.poll);S.poll=setInterval(poll,800)}
+async function poll(){const r=await api(`/api/jobs/${S.job}/log?since=${S.logN}`);S.logN=r.next;
+  const html=r.entries.map(e=>`<div class="${e.구분=="경고"?"w":(e.단계=="완료"?"d":"")}">${esc(e.시각)}  ${e.구분=="경고"?"[경고] ":""}${esc(e.내용)}</div>`).join("");
+  for(const id of ["log1","log2","log3"]){const el=$(id);el.insertAdjacentHTML("beforeend",html);el.scrollTop=el.scrollHeight}
+  if(!r.busy){clearInterval(S.poll);busyUI(false);await loadJob();loadJobs();if(r.error){toast("오류: "+r.error);return}
+    if(S.step==2){toast("검토 완료 — 결과 확인으로 이동합니다");setTimeout(()=>go(3),700)}else if(S.step==4){loadFiles();toast("보고서 작성 완료")}else if(S.step==5){loadFiles();toast("출력 완료")}}}
+const badge=t=>!t?"":t.includes("재검토")?`<span class="badge b-ng">${esc(t)}</span>`:t.includes("참고")?`<span class="badge b-ref">${esc(t)}</span>`:t.includes("일부")?`<span class="badge b-amb">${esc(t)}</span>`:`<span class="badge b-ok">${esc(t)}</span>`;
+async function loadResult(){let R;try{R=await api(`/api/jobs/${S.job}/result`)}catch(e){$("result").innerHTML=`<div class="muted">${esc(e.message)}</div>`;return}
+  const tot=R.공사기간_일,seg=[["준비",R.준비기간,"#ff9f40"],["작업",R.작업일수,"#2f6eb5"],["비작업",R.비작업일수,"#9aa9b9"],["동절기중지",R.동절기중지,"#5bc0de"],["정리",R.정리기간,"#ff9f40"],["보정",R.공사여건보정,"#8e44ad"]].filter(s=>s[1]>0);
+  const vcls=R.적정성.includes("재검토")?"v-ng":R.적정성.includes("일부")?"v-amb":"v-ok";
+  let h=`<div class="kpis"><div class="kpi main"><div class="l">공사기간</div><div class="v">${fmt(tot)}일</div><div class="u">≒ ${R.공사기간_개월}개월</div></div>
+  <div class="kpi"><div class="l">착공 ~ 준공</div><div class="v" style="font-size:15px">${R.착공}<br>~ ${R.준공}</div></div>
+  <div class="kpi"><div class="l">작업일수(CP)</div><div class="v">${fmt(R.작업일수)}</div><div class="u">일</div></div>
+  <div class="kpi"><div class="l">비작업일수(CP)</div><div class="v">${fmt(R.비작업일수)}</div><div class="u">일 · 관측지점 ${esc(R.관측지점)}</div></div>
+  <div class="kpi"><div class="l">준비 / 정리</div><div class="v">${R.준비기간} / ${R.정리기간}</div><div class="u">일</div></div>
+  ${R.동절기중지?`<div class="kpi"><div class="l">동절기 공사중지</div><div class="v">${fmt(R.동절기중지)}</div><div class="u">일 · 동절기 제외 ${fmt(R.동절기제외_공사기간)}일</div></div>`:""}
+  ${R.동절기반영_일?`<div class="kpi"><div class="l">동절기 중지 반영 시(추가검토)</div><div class="v">${fmt(R.동절기반영_일)}일</div><div class="u">준공 ${R.동절기반영_준공}</div></div>`:""}</div>
+  <div class="bar">${seg.map(s=>`<div style="width:${s[1]/tot*100}%;background:${s[2]}" title="${s[0]} ${s[1]}일">${s[1]/tot>.06?s[0]+" "+s[1]:""}</div>`).join("")}</div>
+  <div class="legend">${seg.map(s=>`<span><i style="background:${s[2]}"></i>${s[0]} ${fmt(s[1])}일</span>`).join("")}</div>
+  <h3>적정성 검토 (A ${fmt(R.적정성_A)}일 vs B, 허용범위 ±${R.허용범위*100}%)</h3><div class="verdict ${vcls}">종합판정: ${esc(R.적정성)} <span class="muted">(주 비교기준: ${esc(R.적정성_기준)})</span></div>${R.적정성.startsWith("판정불가")?'<p class="muted">※ 비교기준(부록5 시설유형·변수 또는 5_유사사례)이 없습니다. [② 검토 실행]에서 시설유형을 지정하거나, 사업별 입력을 선택하여 검토하십시오.</p>':""}
+  <table><tr><th>검토기준</th><th>세부기준·산정식</th><th>B(일)</th><th>B(개월)</th><th>편차</th><th>판정</th><th>비고</th></tr>
+  ${R.비교기준.map(r=>`<tr><td>${esc(r.구분)}</td><td class="l">${esc(r.기준)}<br><span class="muted">${esc(r.산정식)}</span></td><td>${fmt(r.B_일)}</td><td>${r.B_개월??"-"}</td><td>${r["편차_%"]!=null?(r["편차_%"]>0?"+":"")+r["편차_%"]+"%":"-"}</td><td>${badge(r.판정)}</td><td class="l muted">${esc(r.비고||"")}</td></tr>`).join("")}</table>`;
+  if(R.복합공사&&R.복합공사.length){h+=`<h3>복합공사 공사별 공사기간 및 적정성</h3><table><tr><th>공사명</th><th>시설유형</th><th>공사비(백만원)</th><th>통합 착수</th><th>통합 완료</th><th>공사별 공사기간</th><th>A</th><th>B (기준)</th><th>편차</th><th>판정</th><th>공정/수량</th></tr>
+    ${R.복합공사.map(x=>`<tr><td>${esc(x.공사명)}</td><td>${esc(x.시설유형)}</td><td>${fmt(x.공사비_백만원)}</td><td>${x.통합_착수}</td><td>${x.통합_완료}</td><td>${fmt(x.독립_공사기간_일)}일</td><td>${fmt(x.A_일)}</td><td class="l">${fmt(x.B_일)} <span class="muted">${esc(x.B_기준)}</span></td><td>${x["편차_%"]!=null?(x["편차_%"]>0?"+":"")+x["편차_%"]+"%":"-"}</td><td>${badge(x.판정)}</td><td>${x.공정수} / ${x.수량항목}</td></tr>`).join("")}</table>
+    <p class="muted">공사별 공사기간·A·B는 각 공사 입력서식으로 독립 산정(준비·정리 포함), 통합 착수·완료는 통합 공정망에서 해당 공사 공정의 기간입니다.</p>`}
+  if(R.목표기간_일){h+=`<h3>목표기간 대비 공기조정</h3><p>목표 <b>${fmt(R.목표기간_일)}일</b>(${esc(R.목표기간_설명)}) · 기본 산정 ${fmt(R.기본산정_일)}일 → 최종 ${fmt(tot)}일 ${R.목표충족?'<span class="badge b-ok">목표 충족</span>':'<span class="badge b-ng">목표 미충족</span>'}</p>`;
+    if(R.공기조정.length)h+=`<div class="scroll"><table><tr><th>단계</th><th>구분</th><th>조치내용</th><th>조정 전</th><th>조정 후</th></tr>${R.공기조정.map(x=>`<tr><td>${x.단계}</td><td>${esc(x.구분)}</td><td class="l">${esc(x.조치내용)}</td><td>${x["조정전(일)"]}</td><td>${x["조정후(일)"]}</td></tr>`).join("")}</table></div>`}
+  h+=`<h3>주공정 (Critical Path)</h3><div class="chips"><span class="chip" style="background:#fff8e6;border-color:#f3c77c;color:#8a5a00">준비 ${R.준비기간}일</span>${R.주공정명.map(n=>`<span class="arrow">→</span><span class="chip">${esc(n)}</span>`).join("")}<span class="arrow">→</span><span class="chip" style="background:#fff8e6;border-color:#f3c77c;color:#8a5a00">정리 ${R.정리기간}일</span></div>
+  <h3>주공정 공정표</h3><a href="/api/jobs/${S.job}/file/03_주공정공정표.png?inline=1" target="_blank"><img src="/api/jobs/${S.job}/file/03_주공정공정표.png?inline=1&t=${Date.now()}" style="width:100%;border:1px solid var(--line);border-radius:8px"></a>
+  <details><summary>공정별 일정 (CPM 계산표, ${R.공정.length}개)</summary><div class="scroll"><table><tr><th>ID</th><th>분야</th><th>공정명</th><th>기상프로필</th><th>작업일수</th><th>선행관계</th><th>착수</th><th>완료</th><th>기간</th><th>TF</th></tr>
+  ${R.공정.map(a=>`<tr class="${a.CP?"cp":""}"><td>${esc(a.id)}</td><td>${esc(a.분야)}</td><td class="l">${esc(a.공정명)}</td><td>${esc(a.프로필)}</td><td>${a.작업일수}</td><td class="l">${esc(a.선행)}</td><td>${a.착수}</td><td>${a.완료}</td><td>${a.기간}</td><td>${a.TF}</td></tr>`).join("")}</table></div></details>
+  <details><summary>월별 비작업일수 (A+B−C, 주40시간 하한)</summary><div class="scroll"><table><tr><th>년월</th><th>구분</th><th>달력</th><th>공사일</th><th>기상프로필</th><th>기후 A</th><th>공휴일 B</th><th>중복 C</th><th>적용</th><th>가동률</th><th>반영 비작업</th></tr>
+  ${R.월별비작업.map(m=>`<tr><td>${m.년}.${String(m.월).padStart(2,"0")}</td><td>${esc(m.구분)}</td><td>${m.달력일수}</td><td>${m.공사일수}</td><td>${esc(m.지배프로필)}</td><td>${m.A??"-"}</td><td>${m.B??"-"}</td><td>${m.C??"-"}</td><td>${m.적용??"-"}</td><td>${m.가동률!=null?(m.가동률*100).toFixed(1)+"%":"-"}</td><td>${m.반영비작업}</td></tr>`).join("")}</table></div></details>
+  <details ${R.확인필요_수량.length||R.경고.length?"open":""}><summary>검토자 확인 필요 (경고 ${R.경고.length}건 · 자동매칭 ${R.확인필요_수량.length}건)</summary>
+  ${R.경고.length?`<ul>${R.경고.map(w=>`<li style="color:var(--warn)">${esc(w)}</li>`).join("")}</ul>`:'<p class="muted">경고 없음</p>'}
+  ${R.확인필요_수량.length?`<div class="scroll"><table><tr><th>No</th><th>공정</th><th>공종</th><th>규격</th><th>단위</th><th>결정방법</th><th>매칭 DB</th><th>1일작업량</th><th>경고</th></tr>${R.확인필요_수량.map(i=>`<tr><td>${i.No}</td><td>${esc(i.공정)}</td><td class="l">${esc(i.공종)}</td><td class="l">${esc(i.규격)}</td><td>${esc(i.단위)}</td><td>${esc(i.결정)}</td><td class="l">${esc(i.DB)}</td><td>${esc(i.일작업량)}</td><td class="l">${esc(i.경고)}</td></tr>`).join("")}</table></div>`:""}</details>
+  <div class="row" style="margin-top:16px"><button class="big" onclick="go(4)">다음: ④ 보고서 작성 →</button></div>`;
+  $("result").innerHTML=h}
+const FDESC={"01_공사기간산정보고서":"공사기간 산정 보고서","02_보고서부록":"보고서 부록 (산정 기초자료)","03_주공정공정표":"주공정(Critical Path) 공정표","04_검토과정_워크북":"검토과정 워크북 (①~⑦ 작업경과)","성과품_전체":"성과품 전체 묶음","result":"결과 요약(JSON)","작업경과":"작업경과 로그"};
+async function loadFiles(){await loadJob();const fs=S.jobData.files;const row=f=>{const b=f.split("/").pop().replace(/\.[^.]+$/,"");const ext=f.split(".").pop().toUpperCase();
+    return `<div class="f"><div><span class="nm">${esc(f)}</span> <span class="muted">${esc(FDESC[b]||"")}</span></div><div class="row">${f.endsWith(".pdf")?`<button class="ghost" onclick="view('${enc(f)}')">미리보기</button>`:""}<a class="btn" href="/api/jobs/${S.job}/file/${enc(f)}">⬇ ${ext}</a></div></div>`};
+  $("files4").innerHTML=fs.filter(f=>/\.(hwpx|docx|xlsx)$/.test(f)).map(row).join("")||'<div class="muted">아직 작성된 보고서가 없습니다.</div>';
+  $("files5").innerHTML=fs.map(row).join("")||'<div class="muted">성과품이 없습니다.</div>';
+  $("zip").href=`/api/jobs/${S.job}/file/성과품_전체.zip`;$("zip").classList.toggle("hidden",!fs.includes("성과품_전체.zip"));
+  const pdfs=fs.filter(f=>f.endsWith(".pdf"));$("pv").innerHTML=pdfs.map(f=>`<button class="ghost" onclick="view('${enc(f)}')">${esc(f)}</button>`).join("")||'<span class="muted">[PDF 변환 · 출력]을 실행하면 미리볼 수 있습니다.</span>';
+  $("soff").textContent=S.info.soffice?"":"※ 서버에 LibreOffice가 없어 PDF 변환이 생략됩니다(DOCX 사용)"}
+function view(f){$("viewer").src=`/api/jobs/${S.job}/file/${f}?inline=1`;$("viewer").classList.remove("hidden");$("viewer").scrollIntoView({behavior:"smooth"})}
+async function upload(file){$("upmsg").textContent="업로드 중… "+file.name;const fd=new FormData();fd.append("file",file);
+  try{const r=await api("/api/jobs",{method:"POST",body:fd});$("upmsg").textContent="업로드 완료: "+file.name;await loadJobs();pick(r.id,2);toast(r.type=="복합공사"?"여러 사업이 포함된 검토엑셀 — 복합공사로 인식되었습니다":"파일 추가 완료 — 조건 확인 후 [검토 실행]")}catch(e){$("upmsg").textContent="";toast(e.message)}}
+const drop=$("drop");drop.onclick=()=>$("file").click();$("file").onchange=e=>e.target.files[0]&&upload(e.target.files[0]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("over")};drop.ondragleave=()=>drop.classList.remove("over");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");e.dataTransfer.files[0]&&upload(e.dataTransfer.files[0])};
+$("btnSave").onclick=saveSettings;$("btnRun").onclick=()=>act("run");$("btnReport").onclick=()=>act("report");$("btnExport").onclick=()=>act("export");
+(async()=>{S.info=await api("/api/info");await loadJobs();go(1)})();
+</script>
+</body>
+</html>

@@ -22,6 +22,7 @@ from .. import service
 from ..combine import build as combine_build
 from ..pipeline import RunLog
 from ..project import OVERVIEW
+from . import wiz
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATA = os.environ.get("CPA_WEB_DATA", os.path.join(ROOT, "web_data"))
@@ -31,6 +32,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 app = FastAPI(title="공사기간 적정성 검토")
+app.include_router(wiz.router)
 LOCK = threading.Lock()
 RUNTIME = {}   # job_id → {"log": RunLog, "res": Result, "busy": 단계명 or None, "error": str}
 
@@ -210,6 +212,12 @@ def background(jid, step, fn):
 
 def do_calc(jid, log):
     m = meta(jid)
+    if m.get("type") == "수량첨부":
+        log("[0/9] 수량파일 ↔ 1일작업량 DB 매칭, 공정 구성 → 검토입력.xlsx 작성", "준비")
+        info = wiz.build(jid)
+        log(f"  수량 {len(info['rows'])}행(반영 {sum(1 for x in info['rows'] if x['use'])}행), 공정 {len(info['acts'])}개", "준비")
+        if info["excluded"]:
+            log.warn(f"작업일수 미반영 수량 {len(info['excluded'])}행(1일작업량 미매칭·검토자 제외) — 검토입력.xlsx '6_제외수량' 시트 확인, 2.3에서 DB지정·수동입력 가능")
     if is_composite_run(m):
         subs = [{"name": s["name"], "path": ipath(jid, s["file"])} for s in m["subs"]]
         return service.calc_composite(ipath(jid, m["combined"]), subs, log)
@@ -228,6 +236,13 @@ def ensure_res(jid, r):
 @app.get("/", response_class=HTMLResponse)
 def index():
     with open(os.path.join(STATIC, "index.html"), encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/classic", response_class=HTMLResponse)
+def classic():
+    """입력서식(1_공사개요~5_유사사례)·검토엑셀 업로드 방식(이전 화면)."""
+    with open(os.path.join(STATIC, "classic.html"), encoding="utf-8") as f:
         return f.read()
 
 
@@ -439,6 +454,11 @@ def list_files(o):
 @app.get("/api/jobs/{jid}")
 def job(jid: str):
     m = meta(jid)
+    if m.get("type") == "수량첨부":
+        r = rt(jid)
+        return {"id": jid, **{k: v for k, v in m.items() if k != "wiz"}, "files": list_files(outdir(jid)),
+                "busy": r["busy"], "error": r["error"], "has_result": r["res"] is not None,
+                "has_input": os.path.exists(cur_input(jid))}
     ov, ni, na = read_overview(cur_input(jid))
     r = rt(jid)
     subs = []
@@ -525,7 +545,7 @@ def export(jid: str):
     o = outdir(jid)
 
     def fn(r):
-        if not os.path.exists(os.path.join(o, "01_공사기간산정보고서.docx")):
+        if not os.path.exists(os.path.join(o, "01_공사기간산정보고서.hwpx")):
             res = ensure_res(jid, r)
             r["log"]("보고서가 없어 먼저 작성합니다.", "출력")
             service.reports(res, o)
@@ -566,3 +586,25 @@ def file(jid: str, name: str, inline: int = 0):
                                     media_type="application/pdf" if p.endswith(".pdf") else None)
             return FileResponse(p, filename=os.path.basename(p))
     raise HTTPException(404, "파일이 없습니다.")
+
+
+@app.get("/api/jobs/{jid}/hwpx_html/{name:path}", response_class=HTMLResponse)
+def hwpx_html(jid: str, name: str):
+    """HWPX 보고서 화면 미리보기(텍스트·표 구성 확인용 HTML)."""
+    p = os.path.normpath(os.path.join(outdir(jid), name))
+    if not p.startswith(os.path.normpath(outdir(jid)) + os.sep) or not p.endswith(".hwpx") or not os.path.isfile(p):
+        raise HTTPException(404, "HWPX 파일이 없습니다.")
+    from hwpx import HwpxDocument
+    doc = HwpxDocument.open(p)
+    try:
+        html = doc.export_html()
+    finally:
+        doc.close()
+    css = ("<style>body{font-family:'Malgun Gothic','맑은 고딕','Noto Sans KR',sans-serif;max-width:900px;margin:20px auto;"
+           "padding:0 20px;font-size:14px;line-height:1.6}table{border-collapse:collapse;margin:6px auto;font-size:12.5px}"
+           "td{border:1px solid #999;padding:3px 6px}tr:first-child td{background:#d9e2f3;font-weight:700;text-align:center}"
+           "hr{border:0;border-top:3px double #1f4e78;margin:30px 0}</style>")
+    return HTMLResponse(html.replace("</head>", css + "</head>", 1))
+
+
+wiz.CTX.update(jdir=jdir, meta=meta, save_meta=save_meta, new_job_dir=new_job_dir, rt=rt)

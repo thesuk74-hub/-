@@ -104,6 +104,9 @@ class Doc:
         r = fp.add_run(" -")
         _font(r, 9)
 
+    def first_header(self, right_text):
+        self.set_header(self.d.sections[0], right_text)
+
     def new_section(self, header_text, landscape=False):
         from docx.enum.section import WD_SECTION
         s = self.d.add_section(WD_SECTION.NEW_PAGE)

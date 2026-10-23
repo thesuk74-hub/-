@@ -13,11 +13,11 @@ SECTIONS = ["부록 1. 법정 공휴일수", "부록 2. 작업제한 기상조�
             "부록 10. 시공조건 명시 항목 예시 (가이드라인 부록6)", "부록 11. 검토 작업경과"]
 
 
-def build(res, path):
+def build(res, path, doc_cls=Doc):
     p, fin = res.p, res.final
     cal, setup = fin.cal, res.setup
-    D = Doc(p.name)
-    D.set_header(D.d.sections[0], "보고서 부록")
+    D = doc_cls(p.name)
+    D.first_header("보고서 부록")
     today = dt.date.today()
     D.cover(p.name, "공사기간 산정 보고서 부록", f"{today.year}. {today.month}.", p.g("발주청", ""), extra="(공사기간 산정 기초자료)")
     D.new_section("부록 목차")

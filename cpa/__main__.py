@@ -4,6 +4,7 @@
   python3 -m cpa run <입력.xlsx> -o <출력폴더> [--no-pdf]  검토 실행 → 보고서·부록·공정표·검토워크북
   python3 -m cpa fill <입력.xlsx> --items 수량.csv --acts 공정.csv [--cases 사례.csv]  CSV 일괄입력
   python3 -m cpa composite 공사A=a.xlsx 공사B=b.xlsx@2027-06-01 [--name 복합공사명] -o <출력폴더>   복합공사
+  python3 -m cpa qty --work 처리시설공사 토공.xlsx 구조물공.xlsx --work 관공사 관로.xlsx --start 2027-03-01 --end 2028-10-31 -o <출력>
   python3 -m cpa web [--port 8000]                    웹 화면 실행(파일 추가·검토·결과·보고서·출력)
   python3 -m cpa db [검색어]                          부록4 1일작업량 DB 검색
   python3 -m cpa stations [검색어]                     부록3 기상관측지점 검색
@@ -63,6 +64,35 @@ def cmd_composite(a):
     for x in service.sub_rows(res):
         print(f"  {x['공사명']}: 공사기간 {x['독립_공사기간_일']}일, A {x['A_일']} / B {x['B_일']} ({x['편차_%']}%) → {x['판정']}")
     print(f"통합 공사기간 {res.adopted_total:,}일, 성과품: {a.out}")
+
+
+def cmd_qty(a):
+    """수량첨부 검토: 공정별 수량파일 → 입력서식 자동 작성 → 검토·성과품."""
+    import json
+
+    from . import service, wizard
+    from .qtyparse import category_from_filename
+    st = wizard.default_state()
+    for grp in a.work:
+        name, files = grp[0], grp[1:]
+        st["works"].append({"name": name, "files": [{"file": os.path.abspath(f), "orig": os.path.basename(f),
+                                                     "category": category_from_filename(f), "sheets_off": []} for f in files]})
+    ov = {"사업명": a.name, "공사명": a.name, "착공예정일": a.start, "준공예정일": a.end, "총공사비(백만원)": a.cost,
+          "사업위치": a.loc, "발주청": a.org}
+    if a.ov:
+        with open(a.ov, encoding="utf-8") as f:
+            ov.update(json.load(f))
+    st["ov"] = {k: v for k, v in ov.items() if v not in (None, "")}
+    os.makedirs(a.out, exist_ok=True)
+    inp = os.path.join(a.out, "검토입력.xlsx")
+    info = wizard.build_input(st, "", inp)
+    print(f"수량 {len(info['rows'])}행 → 공정 {len(info['acts'])}개, 미반영 {len(info['excluded'])}행(검토입력.xlsx 6_제외수량) → {inp}")
+    res = service.calc(inp)
+    service.chart(res, a.out)
+    s = service.reports(res, a.out)
+    if not a.no_pdf:
+        service.export_pdf(a.out, res.log)
+    print(f"공사기간 {s['공사기간_일']:,}일(≒{s['공사기간_개월']}개월), 적정성 '{s['적정성']}' — 성과품: {a.out}")
 
 
 def cmd_web(a):
@@ -164,6 +194,18 @@ def main(argv=None):
     cp.add_argument("-o", "--out", default="output/복합공사")
     cp.add_argument("--no-pdf", action="store_true")
     cp.set_defaults(f=cmd_composite)
+    q = sp.add_parser("qty", help="수량첨부 검토: --work 공정명 수량1.xlsx 수량2.xlsx ... (공정: 처리시설공사·구내배관공사·관공사·배수설비 공사·펌프장 공사)")
+    q.add_argument("--work", nargs="+", action="append", required=True, metavar="공정명 파일")
+    q.add_argument("--name", default="수량첨부 검토")
+    q.add_argument("--start", required=True, help="착공예정일 YYYY-MM-DD")
+    q.add_argument("--end", help="준공예정일 YYYY-MM-DD (목표기간)")
+    q.add_argument("--cost", type=float, help="총공사비(백만원)")
+    q.add_argument("--loc", help="사업위치(관측지점 자동선택)")
+    q.add_argument("--org", help="발주청")
+    q.add_argument("--ov", help="공사개요 추가값 JSON (1_공사개요 항목명: 값)")
+    q.add_argument("-o", "--out", default="output/수량첨부")
+    q.add_argument("--no-pdf", action="store_true")
+    q.set_defaults(f=cmd_qty)
     wv = sp.add_parser("web")
     wv.add_argument("--host", default="127.0.0.1")
     wv.add_argument("--port", type=int, default=8000)

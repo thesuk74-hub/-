@@ -16,18 +16,22 @@ def _lines(text):
     return [x.strip() for x in str(text or "").replace("\r", "").split("\n") if x.strip()]
 
 
+def _d(v):
+    return v.date() if isinstance(v, dt.datetime) else (v if isinstance(v, dt.date) else dt.date.fromisoformat(str(v)[:10]))
+
+
 def _m(days):
     return days / DPM
 
 
-def build(res, path, img_gantt, img_net):
+def build(res, path, img_gantt, img_net, doc_cls=Doc):
     p, fin = res.p, res.final
     cal, setup = fin.cal, res.setup
     total = res.adopted_total
     adq = res.adequacy
     today = dt.date.today()
-    D = Doc(p.name)
-    D.set_header(D.d.sections[0], "공사기간 산정 보고서")
+    D = doc_cls(p.name)
+    D.first_header("공사기간 산정 보고서")
     D.cover(p.name, "공사기간 산정 보고서", f"{today.year}. {today.month}.", p.g("발주청", ""),
             extra=f"({R.GUIDELINE} 기준 적정성 검토)")
     D.new_section("목 차")
@@ -47,8 +51,10 @@ def build(res, path, img_gantt, img_net):
     D.table(["구 분", "내 용"],
             [["공 사 명", p.name], ["발 주 청", p.g("발주청", "-")], ["사업위치", p.g("사업위치", "-")],
              ["총공사비", f"{p.total_cost:,.0f}백만원 (≒ {p.total_cost / 100:,.1f}억원)"],
-             ["시설유형", p.facility_type or "-"], ["착공예정일", fmt_date(p.start_date)],
-             ["기상관측지점", f"{setup.station} ({setup.station_data()['region']})"]],
+             ["시설구분", p.g("시설구분", "-")], ["시설유형(부록5)", p.facility_type or "-"],
+             ["착공예정일", fmt_date(p.start_date)]]
+            + ([["준공예정일(공사개요)", fmt_date(_d(p.g("준공예정일")))]] if p.g("준공예정일") else [])
+            + [["기상관측지점", f"{setup.station} ({setup.station_data()['region']})"]],
             "사업 개요", widths=[4, 12], align=["C", "L"], size=9.5)
     if _lines(p.g("추진경위")):
         D.h3("1.1.3 사업의 추진경위")
